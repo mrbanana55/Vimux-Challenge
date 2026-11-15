@@ -1,0 +1,344 @@
+Screen {
+    background: #0d1117;
+    color: #e6edf3;
+}
+
+MainMenuScreen {
+    align: center middle;
+}
+
+DrillScreen, SettingsScreen, HelpScreen {
+    align: center top;
+}
+
+.banner {
+    width: 100%;
+    text-align: center;
+    color: #39d353;
+    padding: 0 2;
+    text-style: bold;
+}
+
+.subtitle {
+    width: 100%;
+    text-align: center;
+    color: #8b949e;
+    margin-bottom: 0;
+}
+
+.stats-bar {
+    width: 100%;
+    height: auto;
+    margin: 0 4 1 4;
+    padding: 0 2;
+    background: #161b22;
+    border: round #30363d;
+    text-align: center;
+}
+
+.menu-container {
+    width: 68;
+    height: auto;
+    align: center middle;
+    margin: 0;
+    padding: 0 2;
+    background: #161b22;
+    border: round #39d353;
+}
+
+.menu-btn {
+    width: 100%;
+    margin: 0;
+}
+
+.screen-header {
+    dock: top;
+    height: 3;
+    padding: 0 2;
+    background: #161b22;
+    border-bottom: solid #30363d;
+    content-align: left middle;
+}
+
+.footer-bar {
+    dock: bottom;
+    height: 1;
+    padding: 0 2;
+    background: #161b22;
+    color: #8b949e;
+}
+
+/* Gameplay Screen */
+#game-topbar {
+    dock: top;
+    height: 3;
+    padding: 0 2;
+    background: #161b22;
+    border-bottom: solid #30363d;
+    layout: horizontal;
+}
+
+#topbar-title {
+    width: 1fr;
+    content-align: left middle;
+    text-style: bold;
+    color: #58a6ff;
+}
+
+#topbar-metrics {
+    width: auto;
+    content-align: right middle;
+    color: #e6edf3;
+}
+
+#game-body {
+    layout: horizontal;
+    height: 1fr;
+}
+
+#workspace-container {
+    width: 2fr;
+    height: 1fr;
+    padding: 1;
+}
+
+#hud-container {
+    width: 1fr;
+    min-width: 38;
+    max-width: 50;
+    height: 1fr;
+    padding: 1;
+    background: #161b22;
+    border-left: solid #30363d;
+    overflow-y: auto;
+}
+
+.hud-section {
+    margin-bottom: 1;
+    padding: 0 1;
+    background: #0d1117;
+    border: round #30363d;
+    height: auto;
+}
+
+.hud-title {
+    text-style: bold;
+    color: #58a6ff;
+    margin-bottom: 0;
+}
+
+#hint-box {
+    border: round #d29922;
+    background: #1c1608;
+    color: #f0c674;
+}
+
+.hidden {
+    display: none;
+}
+
+/* VIM View */
+VimView {
+    height: 1fr;
+    border: round #58a6ff;
+    padding: 1 2;
+    background: #0d1117;
+}
+
+VimView:focus {
+    border: round #79c0ff;
+}
+
+/* TMUX View */
+TmuxView {
+    height: 1fr;
+    layout: vertical;
+    background: #0d1117;
+}
+
+#tmux-desktop {
+    height: 1fr;
+}
+
+.tmux-split-v {
+    layout: horizontal;
+    height: 1fr;
+    width: 1fr;
+}
+
+.tmux-split-h {
+    layout: vertical;
+    height: 1fr;
+    width: 1fr;
+}
+
+.tmux-pane {
+    border: round #30363d;
+    background: #0d1117;
+    padding: 0 1;
+    overflow: hidden;
+}
+
+.tmux-pane-active {
+    border: round #39d353;
+}
+
+.tmux-pane-copy {
+    border: round #d29922;
+}
+
+#tmux-statusbar {
+    height: 1;
+    background: #238636;
+    color: #ffffff;
+    padding: 0 1;
+    text-style: bold;
+}
+
+#tmux-promptbar {
+    height: auto;
+    max-height: 8;
+    background: #161b22;
+    border-top: solid #d29922;
+    padding: 0 1;
+    color: #f0c674;
+}
+
+/* Level Select */
+#track-tabs {
+    height: 3;
+    padding: 0 2;
+    background: #0d1117;
+    layout: horizontal;
+}
+
+.track-btn {
+    margin: 0 1 0 0;
+}
+
+#level-list {
+    margin: 1 2;
+    height: 1fr;
+    border: round #30363d;
+    background: #161b22;
+}
+
+/* Drill Screen */
+#drill-card {
+    width: 84;
+    height: auto;
+    margin: 2 4;
+    padding: 2 3;
+    background: #161b22;
+    border: round #58a6ff;
+}
+
+#drill-prompt {
+    text-align: center;
+    text-style: bold;
+    color: #ffffff;
+    margin: 1 0;
+}
+
+#drill-typed {
+    text-align: center;
+    color: #79c0ff;
+    background: #0d1117;
+    padding: 1;
+    border: round #30363d;
+    margin: 1 0;
+}
+
+#drill-feedback {
+    text-align: center;
+    margin: 1 0;
+    height: auto;
+}
+
+/* Modal */
+.modal-overlay {
+    align: center middle;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-box {
+    width: 66;
+    height: auto;
+    padding: 2 3;
+    background: #161b22;
+    border: round #39d353;
+}
+
+.modal-title {
+    text-align: center;
+    text-style: bold;
+    color: #39d353;
+    margin-bottom: 1;
+}
+
+.modal-buttons {
+    layout: horizontal;
+    align: center middle;
+    height: auto;
+    margin-top: 1;
+}
+
+.modal-buttons Button {
+    margin: 0 1;
+}
+
+/* Cheat sheet & Settings */
+#cheatsheet-search {
+    margin: 1 2 0 2;
+}
+
+#cheatsheet-table {
+    margin: 1 2;
+    height: 1fr;
+    border: round #30363d;
+}
+
+.settings-card {
+    width: 72;
+    height: auto;
+    margin: 2 4;
+    padding: 2 3;
+    background: #161b22;
+    border: round #30363d;
+}
+
+.settings-row {
+    height: auto;
+    margin: 1 0;
+}
+
+.fn-controls-row {
+    layout: horizontal;
+    height: auto;
+    width: 100%;
+    margin-top: 0;
+}
+
+.fn-control-item {
+    width: 1fr;
+    height: auto;
+    text-align: center;
+    content-align: center middle;
+    padding: 0;
+    margin: 0;
+    color: #e6edf3;
+}
+
+.fn-control-last {
+    margin: 0;
+}
+
+.help-card {
+    width: 86;
+    height: 1fr;
+    margin: 1 2;
+    padding: 1 2;
+    background: #161b22;
+    border: round #58a6ff;
+    overflow-y: auto;
+}

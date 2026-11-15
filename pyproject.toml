@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vim-tmux-quest"
+version = "0.1.0"
+description = "An interactive terminal game and tutorial for mastering VIM motions and TMUX commands."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "textual>=0.80.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[project.scripts]
+vim-tmux-quest = "vim_tmux_quest.main:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+vim_tmux_quest = ["ui/*.tcss"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
