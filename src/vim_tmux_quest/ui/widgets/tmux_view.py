@@ -73,14 +73,14 @@ class TmuxView(Vertical):
 
     def compose(self):
         yield Container(id="tmux-desktop")
-        yield Static("", id="tmux-promptbar", classes="hidden")
-        yield Static("", id="tmux-statusbar")
+        yield Static("", id="tmux-promptbar", classes="hidden", markup=False)
+        yield Static("", id="tmux-statusbar", markup=False)
 
     def _build_split_widget(self, node: SplitNode, win: TmuxWindow):
         if node.is_leaf:
             assert node.pane is not None
             pane = node.pane
-            widget = Static("", classes="tmux-pane")
+            widget = Static("", classes="tmux-pane", markup=False)
             self._pane_widgets[pane.pane_id] = widget
             return widget
 
@@ -109,7 +109,7 @@ class TmuxView(Vertical):
             await desktop.remove_children()
             if win.zoomed_pane_id is not None:
                 zoomed_pane = win.active_pane()
-                widget = Static("", classes="tmux-pane")
+                widget = Static("", classes="tmux-pane", markup=False)
                 widget.styles.width = "1fr"
                 widget.styles.height = "1fr"
                 self._pane_widgets[zoomed_pane.pane_id] = widget
@@ -137,7 +137,7 @@ class TmuxView(Vertical):
             if win.zoomed_pane_id == pane.pane_id:
                 badges.append("[Z]")
             badges.append(f"{pane.width_pct}%x{pane.height_pct}%")
-            widget.border_title = " ".join(badges)
+            widget.border_title = Text(" ".join(badges))
 
             if pane.in_copy_mode:
                 widget.update(_render_copy_mode(pane))

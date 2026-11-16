@@ -39,24 +39,24 @@ class DrillScreen(Screen):
     def compose(self):
         yield Static("PRACTICE & SPEED DRILLS", classes="screen-header")
         with Vertical(id="drill-card"):
-            yield Static("", id="drill-meta")
-            yield Static("", id="drill-prompt")
-            yield Static("", id="drill-typed")
-            yield Static("", id="drill-feedback")
+            yield Static("", id="drill-meta", markup=False)
+            yield Static("", id="drill-prompt", markup=False)
+            yield Static("", id="drill-typed", markup=False)
+            yield Static("", id="drill-feedback", markup=False)
             with Horizontal(classes="fn-controls-row"):
                 yield Static(
-                    "Switch Filter\n[bold #58a6ff][F1 / Fn+F1][/bold #58a6ff]",
+                    "Switch Filter\n[bold #58a6ff]\\[F1 / Fn+F1][/bold #58a6ff]",
                     classes="fn-control-item",
                 )
                 yield Static(
-                    "Reveal Answer\n[bold #d29922][F2 / Fn+F2][/bold #d29922]",
+                    "Reveal Answer\n[bold #d29922]\\[F2 / Fn+F2][/bold #d29922]",
                     classes="fn-control-item",
                 )
                 yield Static(
-                    "Exit Drills\n[bold #f85149][F3 / Fn+F3][/bold #f85149]",
+                    "Exit Drills\n[bold #f85149]\\[F3 / Fn+F3][/bold #f85149]",
                     classes="fn-control-item fn-control-last",
                 )
-        yield Static("[F1] Switch Filter (All/VIM/TMUX/Weak)   [F2] Reveal Answer   [F3] Back to Menu", classes="footer-bar")
+        yield Static("[F1] Switch Filter (All/VIM/TMUX/Weak)   [F2] Reveal Answer   [F3] Back to Menu", classes="footer-bar", markup=False)
 
     def on_mount(self) -> None:
         self._load_next_drill()

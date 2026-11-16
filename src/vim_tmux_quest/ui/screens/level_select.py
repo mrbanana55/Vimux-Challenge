@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual import events
 from textual.containers import Horizontal
 from textual.screen import Screen
@@ -56,7 +57,7 @@ class LevelSelectScreen(Screen):
                 star_txt = "☆☆☆"
                 meta = f"Par: {lvl.par_keystrokes}"
             label = f"[{star_txt}] T{lvl.track_id}.{lvl.number}  {lvl.title:<38} ({lvl.mode.upper():<5})  {meta}"
-            ol.add_option(Option(label, id=lvl.id))
+            ol.add_option(Option(Text(label), id=lvl.id))
             self._visible_levels.append(lvl)
 
         for tid in [0, 1, 2, 3, 4]:

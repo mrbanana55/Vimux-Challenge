@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual import events
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
@@ -16,16 +17,16 @@ class SettingsScreen(Screen):
     def compose(self):
         yield Static("SETTINGS & SAVED PROGRESS", classes="screen-header")
         with Vertical(classes="settings-card"):
-            yield Static("", id="settings-db-path")
+            yield Static("", id="settings-db-path", markup=False)
             with Horizontal(classes="settings-row"):
                 yield Button("Toggle TMUX Prefix (Ctrl-b / Ctrl-a)", id="btn-prefix", variant="primary")
             with Horizontal(classes="settings-row"):
                 yield Button("Toggle Default Hints (Off / On)", id="btn-hints", variant="primary")
-            yield Static("", id="settings-weak-title")
-            yield Static("", id="settings-weak-list")
+            yield Static("", id="settings-weak-title", markup=False)
+            yield Static("", id="settings-weak-list", markup=False)
             with Horizontal(classes="settings-row"):
                 yield Button("Reset All Progress", id="btn-reset", variant="error")
-                yield Button("Back [Esc]", id="btn-back", variant="default")
+                yield Button(Text("Back [Esc]"), id="btn-back", variant="default")
         yield Static("Enter: Activate | Esc/q: Back to Main Menu", classes="footer-bar")
 
     def on_mount(self) -> None:

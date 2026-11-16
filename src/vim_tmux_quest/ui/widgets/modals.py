@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual import events
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
@@ -35,19 +36,20 @@ class LevelCompleteModal(ModalScreen[str]):
         secs = self.time_ms / 1000.0
         with Vertical(classes="modal-overlay"):
             with Vertical(classes="modal-box"):
-                yield Static(f"LEVEL COMPLETE!  {star_str}", classes="modal-title")
+                yield Static(f"LEVEL COMPLETE!  {star_str}", classes="modal-title", markup=False)
                 yield Static(
                     f"Level: {self.level.title}\n"
                     f"Keystrokes: {self.keystrokes}  (Par: {self.level.par_keystrokes})\n"
                     f"Time: {secs:.1f}s   |   XP Gained: +{self.xp_gained}\n\n"
                     f"Optimal Solution:\n  {self.level.optimal_solution}",
                     id="modal-summary",
+                    markup=False,
                 )
                 with Horizontal(classes="modal-buttons"):
                     if self.has_next_level:
-                        yield Button("Next Level [n]", variant="success", id="btn-next")
-                    yield Button("Retry [r]", variant="primary", id="btn-retry")
-                    yield Button("Level Select [m]", id="btn-menu")
+                        yield Button(Text("Next Level [n]"), variant="success", id="btn-next")
+                    yield Button(Text("Retry [r]"), variant="primary", id="btn-retry")
+                    yield Button(Text("Level Select [m]"), id="btn-menu")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-next":
@@ -80,11 +82,11 @@ class ConfirmModal(ModalScreen[bool]):
     def compose(self):
         with Vertical(classes="modal-overlay"):
             with Vertical(classes="modal-box"):
-                yield Static(self._title, classes="modal-title")
-                yield Static(self._message)
+                yield Static(self._title, classes="modal-title", markup=False)
+                yield Static(self._message, markup=False)
                 with Horizontal(classes="modal-buttons"):
-                    yield Button("Confirm [y]", variant="error", id="btn-yes")
-                    yield Button("Cancel [n]", variant="primary", id="btn-no")
+                    yield Button(Text("Confirm [y]"), variant="error", id="btn-yes")
+                    yield Button(Text("Cancel [n]"), variant="primary", id="btn-no")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "btn-yes")

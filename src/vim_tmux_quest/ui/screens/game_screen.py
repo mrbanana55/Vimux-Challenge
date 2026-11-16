@@ -39,8 +39,8 @@ class GameScreen(Screen):
 
     def compose(self):
         with Horizontal(id="game-topbar"):
-            yield Static("", id="topbar-title")
-            yield Static("", id="topbar-metrics")
+            yield Static("", id="topbar-title", markup=False)
+            yield Static("", id="topbar-metrics", markup=False)
         with Horizontal(id="game-body"):
             yield Container(id="workspace-container")
             yield HudWidget(id="hud-container")

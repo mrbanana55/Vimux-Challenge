@@ -156,3 +156,44 @@ def test_tui_drill_screen_ignores_modifier_keys(tmp_path: Path):
             assert drill_screen.streak == 1
 
     asyncio.run(_run())
+
+
+def test_tui_slash_and_bracket_keys_do_not_raise_markup_error(tmp_path: Path):
+    async def _run() -> None:
+        db_path = tmp_path / "tui_markup.db"
+        app = VimTmuxQuestApp(db_path=db_path)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            # Test GameScreen("vim_2_6") with '/', '[', ']', and then solving the level
+            await app.push_screen(GameScreen("vim_2_6"))
+            await pilot.pause()
+            assert isinstance(app.screen, GameScreen)
+
+            for key in ["/", "[", "]", "escape"]:
+                await pilot.press(key)
+            await pilot.pause()
+
+            for key in ["A", ";", "escape", "j", ".", "j", ".", "j", "."]:
+                await pilot.press(key)
+            await pilot.pause()
+
+            assert isinstance(app.screen, LevelCompleteModal)
+            prog = app.db.get_level_progress("vim_2_6")
+            assert prog is not None and prog["completed"] == 1
+
+            # Return from modal/game and test DrillScreen with '/', '[', ']', 'escape'
+            await pilot.press("m")
+            await pilot.pause()
+
+            drill_screen = DrillScreen()
+            await app.push_screen(drill_screen)
+            await pilot.pause()
+            assert isinstance(app.screen, DrillScreen)
+
+            for key in ["/", "[", "]", "escape"]:
+                await pilot.press(key)
+            await pilot.pause()
+            assert isinstance(app.screen, DrillScreen)
+
+    asyncio.run(_run())

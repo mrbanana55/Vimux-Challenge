@@ -16,29 +16,29 @@ class HudWidget(Vertical):
     def compose(self):
         with Vertical(classes="hud-section"):
             yield Static("MISSION", classes="hud-title")
-            yield Static("", id="hud-description")
+            yield Static("", id="hud-description", markup=False)
         with Vertical(classes="hud-section"):
             yield Static("OBJECTIVES", classes="hud-title")
-            yield Static("", id="hud-checklist")
+            yield Static("", id="hud-checklist", markup=False)
         with Vertical(classes="hud-section"):
             yield Static("KEYSTROKE TAPE", classes="hud-title")
-            yield Static("", id="hud-tape")
+            yield Static("", id="hud-tape", markup=False)
         with Vertical(id="hint-box", classes="hud-section hidden"):
             yield Static("HINT (Max 2★ if used)", classes="hud-title")
-            yield Static("", id="hud-hint-text")
+            yield Static("", id="hud-hint-text", markup=False)
         with Vertical(classes="hud-section", id="hud-controls"):
             yield Static("CONTROLS", classes="hud-title")
             with Horizontal(classes="fn-controls-row"):
                 yield Static(
-                    "Toggle Hint\n[bold #58a6ff][F1 / Fn+F1][/bold #58a6ff]",
+                    "Toggle Hint\n[bold #58a6ff]\\[F1 / Fn+F1][/bold #58a6ff]",
                     classes="fn-control-item",
                 )
                 yield Static(
-                    "Reset Level\n[bold #d29922][F2 / Fn+F2][/bold #d29922]",
+                    "Reset Level\n[bold #d29922]\\[F2 / Fn+F2][/bold #d29922]",
                     classes="fn-control-item",
                 )
                 yield Static(
-                    "Exit Level\n[bold #f85149][F3 / Fn+F3][/bold #f85149]",
+                    "Exit Level\n[bold #f85149]\\[F3 / Fn+F3][/bold #f85149]",
                     classes="fn-control-item fn-control-last",
                 )
 
@@ -50,7 +50,7 @@ class HudWidget(Vertical):
         show_hint: bool,
     ) -> None:
         desc = self.query_one("#hud-description", Static)
-        desc.update(f"{level.description}\n\nGoal: {level.objective_text}")
+        desc.update(Text(f"{level.description}\n\nGoal: {level.objective_text}"))
 
         chk_text = Text()
         for label, done in checklist:
@@ -64,10 +64,10 @@ class HudWidget(Vertical):
 
         recent = [format_key_for_display(k) for k in key_history[-10:]]
         tape = " ".join(f"[{k}]" for k in recent) if recent else "(waiting for input...)"
-        self.query_one("#hud-tape", Static).update(tape)
+        self.query_one("#hud-tape", Static).update(Text(tape))
 
         hint_box = self.query_one("#hint-box", Vertical)
-        self.query_one("#hud-hint-text", Static).update(level.hint)
+        self.query_one("#hud-hint-text", Static).update(Text(level.hint))
         if show_hint:
             hint_box.remove_class("hidden")
         else:

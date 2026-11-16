@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual import events
 from textual.containers import Center, Vertical
 from textual.screen import Screen
@@ -22,22 +23,22 @@ class MainMenuScreen(Screen):
     """Main landing screen with campaign continuation and navigation."""
 
     def compose(self):
-        yield Static(BANNER, classes="banner")
+        yield Static(BANNER, classes="banner", markup=False)
         yield Static(
             "Master VIM motions & TMUX commands inside an interactive terminal simulator",
             classes="subtitle",
         )
-        yield Static("", id="main-stats", classes="stats-bar")
+        yield Static("", id="main-stats", classes="stats-bar", markup=False)
         with Center():
             with Vertical(classes="menu-container"):
-                yield Button("[1] Continue Campaign", variant="success", id="btn-continue", classes="menu-btn")
-                yield Button("[2] Level Select (4 Tracks)", variant="primary", id="btn-levels", classes="menu-btn")
-                yield Button("[3] Practice & Speed Drills", variant="primary", id="btn-drills", classes="menu-btn")
-                yield Button("[4] Command Cheat Sheet", variant="default", id="btn-cheatsheet", classes="menu-btn")
-                yield Button("[5] Settings & Progress", variant="default", id="btn-settings", classes="menu-btn")
-                yield Button("[6] Help & Controls (About / Fn Keys)", variant="default", id="btn-help", classes="menu-btn")
-                yield Button("[q] Quit", variant="error", id="btn-quit", classes="menu-btn")
-        yield Static("Keys: [1-6] Quick Launch | j/k or Arrows: Move | Enter: Select | q: Quit", classes="footer-bar")
+                yield Button(Text("[1] Continue Campaign"), variant="success", id="btn-continue", classes="menu-btn")
+                yield Button(Text("[2] Level Select (4 Tracks)"), variant="primary", id="btn-levels", classes="menu-btn")
+                yield Button(Text("[3] Practice & Speed Drills"), variant="primary", id="btn-drills", classes="menu-btn")
+                yield Button(Text("[4] Command Cheat Sheet"), variant="default", id="btn-cheatsheet", classes="menu-btn")
+                yield Button(Text("[5] Settings & Progress"), variant="default", id="btn-settings", classes="menu-btn")
+                yield Button(Text("[6] Help & Controls (About / Fn Keys)"), variant="default", id="btn-help", classes="menu-btn")
+                yield Button(Text("[q] Quit"), variant="error", id="btn-quit", classes="menu-btn")
+        yield Static("Keys: [1-6] Quick Launch | j/k or Arrows: Move | Enter: Select | q: Quit", classes="footer-bar", markup=False)
 
     def on_mount(self) -> None:
         self._refresh_stats()
