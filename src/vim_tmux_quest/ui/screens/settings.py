@@ -8,6 +8,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Static
 
+from vim_tmux_quest.curriculum import get_all_levels
 from vim_tmux_quest.ui.widgets.modals import ConfirmModal
 
 
@@ -20,11 +21,11 @@ class SettingsScreen(Screen):
             yield Static("", id="settings-db-path", markup=False)
             with Horizontal(classes="settings-row"):
                 yield Button("Toggle TMUX Prefix (Ctrl-b / Ctrl-a)", id="btn-prefix", variant="primary")
-            with Horizontal(classes="settings-row"):
                 yield Button("Toggle Default Hints (Off / On)", id="btn-hints", variant="primary")
             yield Static("", id="settings-weak-title", markup=False)
             yield Static("", id="settings-weak-list", markup=False)
             with Horizontal(classes="settings-row"):
+                yield Button("Restart Run (Keep Stars)", id="btn-reset-run", variant="warning")
                 yield Button("Reset All Progress", id="btn-reset", variant="error")
                 yield Button(Text("Back [Esc]"), id="btn-back", variant="default")
         yield Static("Enter: Activate | Esc/q: Back to Main Menu", classes="footer-bar")
@@ -36,15 +37,21 @@ class SettingsScreen(Screen):
         db = self.app.db  # type: ignore[attr-defined]
         prefix = db.get_setting("tmux_prefix", "ctrl+b")
         hints = db.get_setting("show_hints", "0") == "1"
+        levels = get_all_levels()
+        resume_id = db.get_campaign_resume_level_id(
+            [lvl.id for lvl in levels], auto_reset_if_finished=False
+        )
+        resume_lvl = next((lvl for lvl in levels if lvl.id == resume_id), levels[0])
         self.query_one("#settings-db-path", Static).update(
             f"Database Path: {db.db_path}\n"
             f"TMUX Prefix Key: {prefix}\n"
             f"Show Hints Automatically: {'ON' if hints else 'OFF'}\n"
+            f"Campaign Resume Level: T{resume_lvl.track_id}.{resume_lvl.number} ({resume_lvl.title})"
         )
         weak = db.get_weakest_commands(limit=5)
-        self.query_one("#settings-weak-title", Static).update("\nMost Practiced / Weakest Drill Commands:")
+        self.query_one("#settings-weak-title", Static).update("Most Practiced / Weakest Drill Commands:")
         if not weak:
-            self.query_one("#settings-weak-list", Static).update("  (No drill data recorded yet.)\n")
+            self.query_one("#settings-weak-list", Static).update("  (No drill data recorded yet.)")
         else:
             lines = []
             for row in weak:
@@ -52,7 +59,7 @@ class SettingsScreen(Screen):
                     f"  - [{row['tool'].upper()}] {row['command_key']}: "
                     f"{row['success_count']} ok / {row['mistake_count']} mistakes"
                 )
-            self.query_one("#settings-weak-list", Static).update("\n".join(lines) + "\n")
+            self.query_one("#settings-weak-list", Static).update("\n".join(lines))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         db = self.app.db  # type: ignore[attr-defined]
@@ -67,6 +74,19 @@ class SettingsScreen(Screen):
             nxt = "0" if cur == "1" else "1"
             db.set_setting("show_hints", nxt)
             self._refresh()
+        elif bid == "btn-reset-run":
+            def _on_confirm_run(confirmed: bool | None) -> None:
+                if confirmed:
+                    db.reset_campaign_run()
+                    self._refresh()
+
+            self.app.push_screen(
+                ConfirmModal(
+                    "Restart Campaign Run?",
+                    "This resets your current campaign progress to T1.1 while preserving all stars, XP, best scores, and drill stats.",
+                ),
+                callback=_on_confirm_run,
+            )
         elif bid == "btn-reset":
             def _on_confirm(confirmed: bool | None) -> None:
                 if confirmed:

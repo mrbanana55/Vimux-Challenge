@@ -6,7 +6,7 @@ import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 
 def _utc_now_iso() -> str:
@@ -56,6 +56,7 @@ class Database:
     DEFAULT_SETTINGS = {
         "tmux_prefix": "ctrl+b",
         "show_hints": "0",
+        "campaign_level_id": "",
     }
 
     def __init__(self, db_path: Path | str | None = None) -> None:
@@ -81,6 +82,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS level_progress (
                     level_id TEXT PRIMARY KEY,
                     completed INTEGER NOT NULL DEFAULT 0,
+                    run_completed INTEGER NOT NULL DEFAULT 0,
                     stars INTEGER NOT NULL DEFAULT 0,
                     best_keystrokes INTEGER,
                     best_time_ms INTEGER,
@@ -114,6 +116,15 @@ class Database:
                 "INSERT OR IGNORE INTO player_stats (id, total_xp, drills_completed, best_drill_streak) "
                 "VALUES (1, 0, 0, 0)"
             )
+            cols = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(level_progress)").fetchall()
+            }
+            if "run_completed" not in cols:
+                conn.execute(
+                    "ALTER TABLE level_progress ADD COLUMN run_completed INTEGER NOT NULL DEFAULT 0"
+                )
+                conn.execute("UPDATE level_progress SET run_completed = completed")
 
     def get_setting(self, key: str, default: str | None = None) -> str | None:
         """Fetch a single setting value."""
@@ -164,16 +175,18 @@ class Database:
                 conn.execute(
                     """
                     INSERT INTO level_progress (
-                        level_id, completed, stars, best_keystrokes,
+                        level_id, completed, run_completed, stars, best_keystrokes,
                         best_time_ms, attempts, last_played_at
-                    ) VALUES (?, ?, ?, ?, ?, 1, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, 1, ?)
                     """,
-                    (level_id, comp_int, clamped_stars, best_k, best_t, now),
+                    (level_id, comp_int, comp_int, clamped_stars, best_k, best_t, now),
                 )
             else:
                 was_completed = bool(existing["completed"])
+                was_run_completed = bool(existing["run_completed"])
                 old_stars = int(existing["stars"])
                 new_completed = 1 if (was_completed or completed) else 0
+                new_run_completed = 1 if (was_run_completed or completed) else 0
                 new_stars = max(old_stars, clamped_stars)
                 attempts = int(existing["attempts"]) + 1
 
@@ -190,11 +203,11 @@ class Database:
                 conn.execute(
                     """
                     UPDATE level_progress
-                    SET completed = ?, stars = ?, best_keystrokes = ?,
+                    SET completed = ?, run_completed = ?, stars = ?, best_keystrokes = ?,
                         best_time_ms = ?, attempts = ?, last_played_at = ?
                     WHERE level_id = ?
                     """,
-                    (new_completed, new_stars, best_k, best_t, attempts, now, level_id),
+                    (new_completed, new_run_completed, new_stars, best_k, best_t, attempts, now, level_id),
                 )
 
             if xp_delta > 0:
@@ -282,13 +295,80 @@ class Database:
                 """
                 SELECT
                     COUNT(CASE WHEN completed = 1 THEN 1 END) AS levels_completed,
+                    COUNT(CASE WHEN run_completed = 1 THEN 1 END) AS run_levels_completed,
                     COALESCE(SUM(stars), 0) AS total_stars
                 FROM level_progress
                 """
             ).fetchone()
             stats["levels_completed"] = int(agg["levels_completed"])
+            stats["run_levels_completed"] = int(agg["run_levels_completed"])
             stats["total_stars"] = int(agg["total_stars"])
             return stats
+
+    def is_level_run_completed(self, level_id: str) -> bool:
+        """Return whether a level has been completed in the current campaign run."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT run_completed FROM level_progress WHERE level_id = ?",
+                (level_id,),
+            ).fetchone()
+            return bool(row["run_completed"]) if row is not None else False
+
+    def are_all_run_levels_completed(self, level_ids: Sequence[str]) -> bool:
+        """Return True when every given level ID is completed in the current run."""
+        if not level_ids:
+            return False
+        with self._connect() as conn:
+            rows = conn.execute("SELECT level_id, run_completed FROM level_progress").fetchall()
+            run_map = {str(r["level_id"]): bool(r["run_completed"]) for r in rows}
+            return all(run_map.get(lid, False) for lid in level_ids)
+
+    def set_campaign_level(self, level_id: str) -> None:
+        """Persist the active campaign resume level ID."""
+        self.set_setting("campaign_level_id", level_id)
+
+    def reset_campaign_run(self) -> None:
+        """Reset current campaign run progress while preserving global stars, bests, and XP."""
+        with self._connect() as conn:
+            conn.execute("UPDATE level_progress SET run_completed = 0")
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('campaign_level_id', '') "
+                "ON CONFLICT(key) DO UPDATE SET value = ''"
+            )
+
+    def get_campaign_resume_level_id(
+        self,
+        level_ids: Sequence[str],
+        *,
+        auto_reset_if_finished: bool = True,
+    ) -> str:
+        """Return the level ID where the current campaign run should resume.
+
+        If every level in ``level_ids`` has been completed in the current run,
+        optionally starts a fresh run (preserving global stars/stats) and returns
+        the first level ID.
+        """
+        if not level_ids:
+            raise ValueError("level_ids must not be empty")
+
+        progress = self.get_all_level_progress()
+        all_run_done = all(
+            bool((progress.get(lid) or {}).get("run_completed"))
+            for lid in level_ids
+        )
+        if all_run_done:
+            if auto_reset_if_finished:
+                self.reset_campaign_run()
+            return level_ids[0]
+
+        saved_id = self.get_setting("campaign_level_id", "") or ""
+        if saved_id in level_ids and not bool((progress.get(saved_id) or {}).get("run_completed")):
+            return saved_id
+
+        for lid in level_ids:
+            if not bool((progress.get(lid) or {}).get("run_completed")):
+                return lid
+        return level_ids[0]
 
     def update_drill_stats(self, completed_delta: int, streak: int, xp_delta: int) -> dict[str, Any]:
         """Update drill completion counters, best streak, and XP."""
@@ -313,4 +393,8 @@ class Database:
             conn.execute("DELETE FROM command_stats")
             conn.execute(
                 "UPDATE player_stats SET total_xp = 0, drills_completed = 0, best_drill_streak = 0 WHERE id = 1"
+            )
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('campaign_level_id', '') "
+                "ON CONFLICT(key) DO UPDATE SET value = ''"
             )

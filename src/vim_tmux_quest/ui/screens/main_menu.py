@@ -47,10 +47,20 @@ class MainMenuScreen(Screen):
         self._refresh_stats()
 
     def _refresh_stats(self) -> None:
-        stats = self.app.db.get_player_stats()  # type: ignore[attr-defined]
+        db = self.app.db  # type: ignore[attr-defined]
+        stats = db.get_player_stats()
         levels = get_all_levels()
+        level_ids = [lvl.id for lvl in levels]
+        resume_id = db.get_campaign_resume_level_id(level_ids)
+        resume_lvl = next((lvl for lvl in levels if lvl.id == resume_id), levels[0])
+        progress = db.get_all_level_progress()
+        run_done = sum(
+            1 for lvl in levels
+            if bool((progress.get(lvl.id) or {}).get("run_completed"))
+        )
+
         max_stars = len(levels) * 3
-        prefix = self.app.db.get_setting("tmux_prefix", "ctrl+b")  # type: ignore[attr-defined]
+        prefix = db.get_setting("tmux_prefix", "ctrl+b")
         summary = (
             f"XP: {stats['total_xp']}   |   "
             f"Levels: {stats['levels_completed']}/{len(levels)}   |   "
@@ -60,18 +70,23 @@ class MainMenuScreen(Screen):
         )
         self.query_one("#main-stats", Static).update(summary)
 
+        tag = f"T{resume_lvl.track_id}.{resume_lvl.number}"
+        if stats["levels_completed"] >= len(levels):
+            if run_done > 0:
+                btn_label = f"[1] Continue Campaign ({tag} | Run {run_done}/{len(levels)})"
+            else:
+                btn_label = f"[1] Continue Campaign ({tag} | New Run)"
+        else:
+            btn_label = f"[1] Continue Campaign ({tag})"
+        self.query_one("#btn-continue", Button).label = Text(btn_label)
+
     def _continue_campaign(self) -> None:
         from vim_tmux_quest.ui.screens.game_screen import GameScreen
 
         levels = get_all_levels()
-        progress = self.app.db.get_all_level_progress()  # type: ignore[attr-defined]
-        target = levels[0]
-        for lvl in levels:
-            row = progress.get(lvl.id)
-            if row is None or not row["completed"]:
-                target = lvl
-                break
-        self.app.push_screen(GameScreen(target.id))
+        level_ids = [lvl.id for lvl in levels]
+        target_id = self.app.db.get_campaign_resume_level_id(level_ids)  # type: ignore[attr-defined]
+        self.app.push_screen(GameScreen(target_id, campaign_mode=True))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         from vim_tmux_quest.ui.screens.cheatsheet import CheatSheetScreen

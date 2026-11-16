@@ -3,7 +3,9 @@
 import asyncio
 from pathlib import Path
 
+from vim_tmux_quest.curriculum import get_all_levels
 from vim_tmux_quest.curriculum.drills import DRILL_BANK
+from vim_tmux_quest.db.database import Database
 from vim_tmux_quest.ui.app import VimTmuxQuestApp
 from vim_tmux_quest.ui.screens.cheatsheet import CheatSheetScreen
 from vim_tmux_quest.ui.screens.drill_screen import DrillScreen
@@ -195,5 +197,104 @@ def test_tui_slash_and_bracket_keys_do_not_raise_markup_error(tmp_path: Path):
                 await pilot.press(key)
             await pilot.pause()
             assert isinstance(app.screen, DrillScreen)
+
+    asyncio.run(_run())
+
+
+def test_tui_replay_after_completing_all_levels_resumes_new_run_and_keeps_stars(tmp_path: Path):
+    async def _run() -> None:
+        db_path = tmp_path / "tui_replay.db"
+        seed_db = Database(db_path=db_path)
+        all_levels = get_all_levels()
+        for lvl in all_levels:
+            seed_db.record_level_attempt(
+                lvl.id,
+                completed=True,
+                keystrokes=lvl.par_keystrokes,
+                time_ms=1000,
+                stars=3,
+                xp_earned=lvl.xp_reward,
+            )
+
+        # Session 1: all levels were completed; Continue Campaign starts at T1.1
+        app1 = VimTmuxQuestApp(db_path=db_path)
+        async with app1.run_test() as pilot:
+            await pilot.pause()
+            assert isinstance(app1.screen, MainMenuScreen)
+            assert app1.db.get_player_stats()["levels_completed"] == len(all_levels)
+            assert app1.db.get_player_stats()["total_stars"] == len(all_levels) * 3
+
+            await pilot.press("1")
+            await pilot.pause()
+            assert isinstance(app1.screen, GameScreen)
+            assert app1.screen.level.id == "vim_1_1"
+
+            # Solve vim_1_1 with extra keystrokes (would only earn 1 star) and advance to vim_1_2
+            for key in ["l", "h", "j", "j", "j", "l", "l", "l", "l", "l", "l"]:
+                await pilot.press(key)
+            await pilot.pause()
+            assert isinstance(app1.screen, LevelCompleteModal)
+
+            await pilot.press("n")
+            await pilot.pause()
+            assert isinstance(app1.screen, GameScreen)
+            assert app1.screen.level.id == "vim_1_2"
+
+            # Exit mid-level (F3) and quit app
+            await pilot.press("f3")
+            await pilot.pause()
+            assert isinstance(app1.screen, MainMenuScreen)
+
+        # Session 2: reopen and Continue Campaign -> must resume at vim_1_2 (not vim_1_1!)
+        app2 = VimTmuxQuestApp(db_path=db_path)
+        async with app2.run_test() as pilot:
+            await pilot.pause()
+            assert isinstance(app2.screen, MainMenuScreen)
+
+            # Global stars & completed count are preserved
+            prog_1_1 = app2.db.get_level_progress("vim_1_1")
+            assert prog_1_1 is not None
+            assert prog_1_1["stars"] == 3
+            assert app2.db.get_player_stats()["levels_completed"] == len(all_levels)
+            assert app2.db.get_player_stats()["total_stars"] == len(all_levels) * 3
+
+            await pilot.press("1")
+            await pilot.pause()
+            assert isinstance(app2.screen, GameScreen)
+            assert app2.screen.level.id == "vim_1_2"
+
+    asyncio.run(_run())
+
+
+def test_tui_settings_restart_campaign_run_keeps_stars(tmp_path: Path):
+    async def _run() -> None:
+        db_path = tmp_path / "tui_reset_run.db"
+        seed_db = Database(db_path=db_path)
+        seed_db.record_level_attempt("vim_1_1", completed=True, keystrokes=9, time_ms=1000, stars=3, xp_earned=50)
+        seed_db.record_level_attempt("vim_1_2", completed=True, keystrokes=4, time_ms=1000, stars=3, xp_earned=50)
+
+        app = VimTmuxQuestApp(db_path=db_path)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press("5")
+            await pilot.pause()
+            assert isinstance(app.screen, SettingsScreen)
+
+            await pilot.click("#btn-reset-run")
+            await pilot.pause()
+            await pilot.press("y")
+            await pilot.pause()
+
+            await pilot.press("escape")
+            await pilot.pause()
+            assert isinstance(app.screen, MainMenuScreen)
+
+            # Global stats remain intact, but Continue Campaign starts at vim_1_1
+            assert app.db.get_player_stats()["levels_completed"] == 2
+            assert app.db.get_player_stats()["total_stars"] == 6
+            await pilot.press("1")
+            await pilot.pause()
+            assert isinstance(app.screen, GameScreen)
+            assert app.screen.level.id == "vim_1_1"
 
     asyncio.run(_run())

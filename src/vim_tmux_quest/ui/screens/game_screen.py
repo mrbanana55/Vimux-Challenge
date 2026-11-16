@@ -23,12 +23,13 @@ from vim_tmux_quest.ui.widgets.vim_view import VimView
 class GameScreen(Screen):
     """Plays a single VIM, TMUX, or Combo level with live checklist & scoring."""
 
-    def __init__(self, level_id: str) -> None:
+    def __init__(self, level_id: str, campaign_mode: bool = False) -> None:
         super().__init__()
         lvl = get_level_by_id(level_id)
         if lvl is None:
             raise ValueError(f"Unknown level ID: {level_id}")
         self.level: Level = lvl
+        self.campaign_mode: bool = campaign_mode
         self.engine: VimEngine | TmuxEngine = lvl.setup_fn()
         self.show_hint: bool = False
         self.hint_used: bool = False
@@ -48,14 +49,17 @@ class GameScreen(Screen):
     async def on_mount(self) -> None:
         await self._load_level(self.level)
 
-    async def _load_level(self, level: Level) -> None:
+    async def _load_level(self, level: Level, *, update_campaign_pos: bool = True) -> None:
         self.level = level
+        db = self.app.db  # type: ignore[attr-defined]
+        if self.campaign_mode and update_campaign_pos and not db.is_level_run_completed(level.id):
+            db.set_campaign_level(level.id)
         self.engine = level.setup_fn()
         if isinstance(self.engine, TmuxEngine):
-            prefix = self.app.db.get_setting("tmux_prefix", "ctrl+b") or "ctrl+b"  # type: ignore[attr-defined]
+            prefix = db.get_setting("tmux_prefix", "ctrl+b") or "ctrl+b"
             self.engine.set_prefix_key(prefix)
 
-        default_hints = (self.app.db.get_setting("show_hints", "0") == "1")  # type: ignore[attr-defined]
+        default_hints = (db.get_setting("show_hints", "0") == "1")
         self.show_hint = default_hints
         self.hint_used = default_hints
         self._start_mono = time.monotonic()
@@ -118,7 +122,7 @@ class GameScreen(Screen):
         if event.key == "f2":
             event.stop()
             event.prevent_default()
-            await self._load_level(self.level)
+            await self._load_level(self.level, update_campaign_pos=False)
             return
 
         if event.key == "f3":
@@ -154,7 +158,8 @@ class GameScreen(Screen):
         else:
             stars = 1
 
-        res = self.app.db.record_level_attempt(  # type: ignore[attr-defined]
+        db = self.app.db  # type: ignore[attr-defined]
+        res = db.record_level_attempt(
             level_id=self.level.id,
             completed=True,
             keystrokes=keystrokes,
@@ -164,14 +169,21 @@ class GameScreen(Screen):
         )
 
         all_levels = get_all_levels()
+        all_level_ids = [l.id for l in all_levels]
         idx = next((i for i, l in enumerate(all_levels) if l.id == self.level.id), -1)
         next_level = all_levels[idx + 1] if 0 <= idx + 1 < len(all_levels) else None
 
+        if db.are_all_run_levels_completed(all_level_ids):
+            db.reset_campaign_run()
+        elif self.campaign_mode and next_level is not None and not db.is_level_run_completed(next_level.id):
+            db.set_campaign_level(next_level.id)
+
         def _on_modal_close(choice: str | None) -> None:
             if choice == "next" and next_level is not None:
+                self.campaign_mode = True
                 self.run_worker(self._load_level(next_level))
             elif choice == "retry":
-                self.run_worker(self._load_level(self.level))
+                self.run_worker(self._load_level(self.level, update_campaign_pos=False))
             else:
                 self.app.pop_screen()
 
