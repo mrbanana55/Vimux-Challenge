@@ -83,3 +83,18 @@ def test_copy_mode_and_vim_routing():
     eng.active_pane.vim_engine = vim
     eng.handle_keys(["A", "!", "Esc"])
     assert vim.get_text() == "hello!"
+
+
+def test_tmux_prefix_with_modifiers_and_shifted_keys():
+    eng = TmuxEngine()
+    eng.handle_keys(["Ctrl-b", "left_shift", "%"])
+    assert len(eng.active_window.panes()) == 2
+    assert eng.keystroke_count == 2
+    assert eng.prefix_active is False
+
+    eng.handle_keys(["Ctrl-b", "{"])
+    eng.handle_keys(["Ctrl-b", "right_shift", "L", "Ctrl-b", "shift+l"])
+    assert eng.active_window.panes()[0].width_pct >= 70
+
+    eng.handle_keys(["Ctrl-b", "left_shift", "$", *list("prod"), "Enter"])
+    assert eng.active_session.name == "prod"

@@ -9,6 +9,8 @@ import sys
 import venv
 from pathlib import Path
 
+os.environ.setdefault("TEXTUAL_DISABLE_KITTY_KEY", "1")
+
 
 def _ensure_venv_if_needed() -> None:
     """Create/bootstrap local .venv and re-exec if textual is unavailable."""
@@ -98,6 +100,10 @@ def run() -> None:
     if args.status:
         _print_status()
         return
+
+    import textual.constants
+
+    textual.constants.DISABLE_KITTY_KEY = True  # type: ignore[misc]
 
     from vim_tmux_quest.ui.app import VimTmuxQuestApp
 

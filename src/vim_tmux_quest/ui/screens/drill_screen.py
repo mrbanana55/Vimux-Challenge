@@ -144,6 +144,8 @@ class DrillScreen(Screen):
         event.stop()
         event.prevent_default()
         key = normalize_key(event.key, event.character)
+        if not key:
+            return
         self.typed_keys.append(key)
 
         # Check exact match

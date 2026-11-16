@@ -3,6 +3,7 @@
 import asyncio
 from pathlib import Path
 
+from vim_tmux_quest.curriculum.drills import DRILL_BANK
 from vim_tmux_quest.ui.app import VimTmuxQuestApp
 from vim_tmux_quest.ui.screens.cheatsheet import CheatSheetScreen
 from vim_tmux_quest.ui.screens.drill_screen import DrillScreen
@@ -104,5 +105,54 @@ def test_tui_tmux_level_execution(tmp_path: Path):
             assert isinstance(app.screen, LevelCompleteModal)
             prog = app.db.get_level_progress("tmux_3_1")
             assert prog is not None and prog["completed"] == 1
+
+    asyncio.run(_run())
+
+
+def test_tui_vim_1_4_uppercase_and_5g_with_modifiers(tmp_path: Path):
+    async def _run() -> None:
+        db_path = tmp_path / "tui_vim_1_4.db"
+        app = VimTmuxQuestApp(db_path=db_path)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await app.push_screen(GameScreen("vim_1_4"))
+            await pilot.pause()
+            assert isinstance(app.screen, GameScreen)
+
+            for key in ["left_shift", "G", "g", "g", "5", "left_shift", "caps_lock", "G"]:
+                await pilot.press(key)
+            await pilot.pause()
+
+            assert isinstance(app.screen, LevelCompleteModal)
+            prog = app.db.get_level_progress("vim_1_4")
+            assert prog is not None
+            assert prog["completed"] == 1
+            assert prog["best_keystrokes"] == 5
+
+    asyncio.run(_run())
+
+
+def test_tui_drill_screen_ignores_modifier_keys(tmp_path: Path):
+    async def _run() -> None:
+        db_path = tmp_path / "tui_drill.db"
+        app = VimTmuxQuestApp(db_path=db_path)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            drill_screen = DrillScreen()
+            await app.push_screen(drill_screen)
+            await pilot.pause()
+            assert isinstance(app.screen, DrillScreen)
+
+            drill_screen.current_drill = next(d for d in DRILL_BANK if d.id == "vim_file_bot")
+            drill_screen.typed_keys = []
+            drill_screen.had_mistake = False
+            drill_screen._refresh_view()
+
+            await pilot.press("left_shift", "caps_lock", "shift+g")
+            await pilot.pause()
+
+            assert drill_screen.session_done == 1
+            assert drill_screen.session_correct == 1
+            assert drill_screen.streak == 1
 
     asyncio.run(_run())

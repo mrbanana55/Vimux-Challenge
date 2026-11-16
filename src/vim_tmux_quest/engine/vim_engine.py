@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Callable
 
-from vim_tmux_quest.engine.key_utils import normalize_key
+from vim_tmux_quest.engine.key_utils import is_modifier_key, normalize_key
 
 BRACKET_PAIRS = {"(": ")", ")": "(", "[": "]", "]": "[", "{": "}", "}": "{"}
 OPEN_BRACKETS = {"(", "[", "{"}
@@ -156,6 +156,8 @@ class VimEngine:
     # ------------------------------------------------------------------
     def handle_key(self, raw_key: str, character: str | None = None) -> None:
         key = normalize_key(raw_key, character)
+        if not key:
+            return
         self._dispatch_key(key, internal=False)
 
     def handle_keys(self, keys: list[str]) -> None:
@@ -163,6 +165,8 @@ class VimEngine:
             self.handle_key(key)
 
     def _dispatch_key(self, key: str, internal: bool = False) -> None:
+        if not key or is_modifier_key(key):
+            return
         if not internal:
             self.keystroke_count += 1
             self.key_history.append(key)
@@ -1360,14 +1364,18 @@ class VimEngine:
                 self.row, self.col = nr, nc
             return
 
+        if self.pending_op == "g":
+            count = int(self.pending_count) if self.pending_count else 1
+            has_count = bool(self.pending_count)
+            self.pending_op = ""
+            self.pending_count = ""
+            if key == "g":
+                nr = 0 if not has_count else max(0, min(count - 1, len(self.lines) - 1))
+                self.row = nr
+                self.col = self._first_non_blank(nr)
+            return
         if key == "g":
             self.pending_op = "g"
-            return
-        if self.pending_op == "g":
-            self.pending_op = ""
-            if key == "g":
-                self.row = 0
-                self.col = self._first_non_blank(0)
             return
 
         if key.isdigit() and (key != "0" or self.pending_count):
@@ -1381,8 +1389,8 @@ class VimEngine:
             "w", "W", "e", "E", "b", "B", ";", ",", "n", "N",
         }
         if key in motion_keys:
-            self.pending_count = ""
             res = self._compute_motion(key, count)
+            self.pending_count = ""
             if res:
                 (nr, nc), _, _ = res
                 self.row, self.col = nr, nc

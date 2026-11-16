@@ -11,6 +11,7 @@ from textual.widgets import Static
 
 from vim_tmux_quest.curriculum import get_all_levels, get_level_by_id
 from vim_tmux_quest.curriculum.models import Level
+from vim_tmux_quest.engine.key_utils import normalize_key
 from vim_tmux_quest.engine.tmux_engine import TmuxEngine
 from vim_tmux_quest.engine.vim_engine import VimEngine
 from vim_tmux_quest.ui.widgets.hud import HudWidget
@@ -131,6 +132,9 @@ class GameScreen(Screen):
 
         event.stop()
         event.prevent_default()
+        key = normalize_key(event.key, event.character)
+        if not key:
+            return
         self.engine.handle_key(event.key, event.character)
         await self._refresh_ui()
 

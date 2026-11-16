@@ -68,18 +68,95 @@ SPECIAL_KEY_MAP: dict[str, str] = {
     "alt+right": "Alt-Right",
 }
 
+MODIFIER_ONLY_KEYS: frozenset[str] = frozenset(
+    {
+        "shift",
+        "left_shift",
+        "right_shift",
+        "ctrl",
+        "control",
+        "left_control",
+        "right_control",
+        "alt",
+        "option",
+        "left_alt",
+        "right_alt",
+        "super",
+        "cmd",
+        "command",
+        "left_super",
+        "right_super",
+        "hyper",
+        "left_hyper",
+        "right_hyper",
+        "meta",
+        "left_meta",
+        "right_meta",
+        "iso_level3_shift",
+        "iso_level5_shift",
+        "caps_lock",
+        "scroll_lock",
+        "num_lock",
+        "ignore",
+        "<ignore>",
+    }
+)
+
+
+def is_modifier_key(key: str) -> bool:
+    """Return True if key represents a standalone modifier, lock, or ignored key."""
+    if not key:
+        return True
+    lower = key.lower()
+    if lower in MODIFIER_ONLY_KEYS:
+        return True
+    if key != "+" and "+" in lower:
+        tail = lower.rsplit("+", 1)[-1]
+        if tail in MODIFIER_ONLY_KEYS:
+            return True
+    return False
+
 
 def normalize_key(key: str, character: str | None = None) -> str:
     """Normalize a Textual or test key string into a canonical token."""
-    if character and len(character) == 1 and character.isprintable() and not key.startswith(("ctrl+", "alt+")):
-        return character
+    if is_modifier_key(key):
+        return ""
 
     lower = key.lower()
+    if (
+        character
+        and len(character) == 1
+        and character.isprintable()
+        and not lower.startswith(("ctrl+", "ctrl-", "alt+", "alt-"))
+    ):
+        if lower.startswith(("shift+", "shift-")) and character.isalpha():
+            return character.upper()
+        return character
+
+    if lower.startswith(("shift+", "shift-")):
+        base = key[6:]
+        base_lower = base.lower()
+        if len(base) == 1 and base.isalpha():
+            return base.upper()
+        if base_lower.startswith("upper_") and len(base_lower) == 7 and base_lower[-1].isalpha():
+            return base_lower[-1].upper()
+        if base_lower in TEXTUAL_PUNCT_MAP:
+            return TEXTUAL_PUNCT_MAP[base_lower]
+        if base_lower in SPECIAL_KEY_MAP:
+            return SPECIAL_KEY_MAP[base_lower]
+        if len(base) == 1:
+            return base
+
+    if lower.startswith("upper_") and len(lower) == 7 and lower[-1].isalpha():
+        return lower[-1].upper()
+
     if lower in SPECIAL_KEY_MAP:
         return SPECIAL_KEY_MAP[lower]
     if lower in TEXTUAL_PUNCT_MAP:
         return TEXTUAL_PUNCT_MAP[lower]
 
+    if lower.startswith(("ctrl+shift+", "ctrl-shift-")) and len(lower) == 12 and lower[-1].isalpha():
+        return f"Ctrl-{lower[-1]}"
     if lower.startswith("ctrl+") and len(lower) == 6:
         return f"Ctrl-{lower[-1]}"
     if lower.startswith("ctrl-") and len(lower) == 6:

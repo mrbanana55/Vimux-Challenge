@@ -232,6 +232,8 @@ class TmuxEngine:
     # ------------------------------------------------------------------
     def handle_key(self, raw_key: str, character: str | None = None) -> None:
         key = normalize_key(raw_key, character)
+        if not key:
+            return
         self.keystroke_count += 1
         self.key_history.append(key)
         if len(self.key_history) > 50:

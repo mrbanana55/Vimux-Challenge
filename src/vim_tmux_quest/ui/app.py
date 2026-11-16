@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
+os.environ.setdefault("TEXTUAL_DISABLE_KITTY_KEY", "1")
+
+import textual.constants
 from textual.app import App
+
+textual.constants.DISABLE_KITTY_KEY = True  # type: ignore[misc]
 
 from vim_tmux_quest.db.database import Database
 from vim_tmux_quest.ui.screens.main_menu import MainMenuScreen

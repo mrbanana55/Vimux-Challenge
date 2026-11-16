@@ -115,3 +115,57 @@ def test_ex_commands_w_and_q():
     eng.handle_keys([":", "w", "q", "Enter"])
     assert eng.saved is True
     assert eng.quitted is True
+
+
+def test_5g_and_uppercase_motions_ignore_modifiers_and_variants():
+    text = "\n".join(f"line {i}" for i in range(1, 9))
+
+    for seq in (
+        ["5", "left_shift", "G"],
+        ["5", "caps_lock", "G"],
+        ["5", "shift+g"],
+        ["5", "upper_g"],
+    ):
+        eng = VimEngine.from_text(text, row=2, col=0)
+        eng.handle_keys(seq)
+        assert eng.row == 4
+        assert eng.keystroke_count == 2
+        assert eng.pending_count == ""
+
+
+def test_uppercase_commands_and_operators_with_modifiers():
+    eng = VimEngine.from_text("l1\nl2\nl3\nl4\nl5", row=0, col=0)
+    eng.handle_keys(["left_shift", "G"])
+    assert eng.row == 4
+
+    eng = VimEngine.from_text("l1\nl2\nl3\nl4\nl5", row=1, col=0)
+    eng.handle_keys(["d", "left_shift", "G"])
+    assert eng.get_text() == "l1"
+
+    eng = VimEngine.from_text("l1\nl2\nl3\nl4\nl5", row=0, col=0)
+    eng.handle_keys(["2", "d", "right_shift", "G"])
+    assert eng.get_text() == "l3\nl4\nl5"
+
+    eng = VimEngine.from_text("  one\ntwo\nthree\nfour\nfive\nsix", row=0, col=0)
+    eng.handle_keys(["left_shift", "V", "5", "caps_lock", "G", "d"])
+    assert eng.get_text() == "six"
+
+    eng = VimEngine.from_text("  one\ntwo\nthree\nfour\nfive\nsix", row=0, col=0)
+    eng.handle_keys(["V", "5", "g", "g", "d"])
+    assert eng.get_text() == "six"
+
+    eng = VimEngine.from_text("  mid", row=0, col=3)
+    eng.handle_keys(["left_shift", "I", "a", " ", "Esc"])
+    eng.handle_keys(["right_shift", "A", "!", "Esc"])
+    eng.handle_keys(["caps_lock", "O", *list("top"), "Esc"])
+    assert eng.get_text() == "top\n  a mid!"
+
+    eng = VimEngine.from_text("abcdef", row=0, col=3)
+    eng.handle_keys(["left_shift", "D"])
+    assert eng.get_text() == "abc"
+    eng.handle_keys(["0", "l", "right_shift", "C", *list("XYZ"), "Esc"])
+    assert eng.get_text() == "aXYZ"
+
+    eng.handle_keys(["left_shift", "Z", "left_shift", "Z"])
+    assert eng.saved is True
+    assert eng.quitted is True
